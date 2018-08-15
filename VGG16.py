@@ -10,30 +10,30 @@ class VGG16(nn.Module):
 
     def __init__(self, num_classes):
         super(VGG16, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, 3)
-        self.conv2 = nn.Conv2d(64, 64, 3)
+        self.conv1 = nn.Conv2d(3, 64, 3, padding=1)
+        self.conv2 = nn.Conv2d(64, 64, 3, padding=1)
         self.mp = nn.MaxPool2d(2)
 
-        self.conv3 = nn.Conv2d(64, 128, 3)
-        self.conv4 = nn.Conv2d(128, 128, 3)
+        self.conv3 = nn.Conv2d(64, 128, 3, padding=1)
+        self.conv4 = nn.Conv2d(128, 128, 3, padding=1)
         # self.mp
 
-        self.conv5 = nn.Conv2d(128, 256, 3)
-        self.conv6 = nn.Conv2d(256, 256, 3)
-        self.conv7 = nn.Conv2d(256, 256, 3)
+        self.conv5 = nn.Conv2d(128, 256, 3, padding=1)
+        self.conv6 = nn.Conv2d(256, 256, 3, padding=1)
+        self.conv7 = nn.Conv2d(256, 256, 3, padding=1)
         # self.mp
 
-        self.conv8 = nn.Conv2d(256, 512, 3)
-        self.conv9 = nn.Conv2d(512, 512, 3)
-        self.conv10 = nn.Conv2d(512, 512, 3)
+        self.conv8 = nn.Conv2d(256, 512, 3, padding=1)
+        self.conv9 = nn.Conv2d(512, 512, 3, padding=1)
+        self.conv10 = nn.Conv2d(512, 512, 3, padding=1)
         # self.mp
 
-        self.conv11 = nn.Conv2d(512, 512, 3)
-        self.conv12 = nn.Conv2d(512, 512, 3)
-        self.conv13 = nn.Conv2d(512, 512, 3)
+        self.conv11 = nn.Conv2d(512, 512, 3, padding=1)
+        self.conv12 = nn.Conv2d(512, 512, 3, padding=1)
+        self.conv13 = nn.Conv2d(512, 512, 3, padding=1)
         # self.mp
 
-        self.linear1 = nn.Linear(512, 4096)
+        self.linear1 = nn.Linear(512 * 7 * 7, 4096)
         self.linear2 = nn.Linear(4096, 4096)
         self.linear3 = nn.Linear(4096, num_classes)
 
@@ -68,7 +68,7 @@ class VGG16(nn.Module):
         x = F.relu(self.conv13(x))
         x = self.mp(x)
 
-        x = x.view(-1, 512)
+        x = x.view(-1, 512 * 7 * 7)
 
         x = F.relu(self.linear1(x))
         x = F.relu(self.linear2(x))
@@ -84,16 +84,17 @@ def main():
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
+    batch_size = 16
     train_data = torchvision.datasets.CIFAR10(
         root='./data', train=True, download=True, transform=transform)
 
-    train_loader = torch.utils.data.DataLoader(train_data, batch_size=4,
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size,
                                                shuffle=False, num_workers=2)
 
     test_data = torchvision.datasets.CIFAR10(
         root='./data', train=False, download=True, transform=transform)
 
-    test_loader = torch.utils.data.DataLoader(test_data, batch_size=4,
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size,
                                               shuffle=False, num_workers=2)
 
     model = VGG16(10)
@@ -108,6 +109,7 @@ def main():
     for i in range(epochs):
         
         curr_loss = 0
+        total = 0
         for j, data in enumerate(train_loader):
             img, cl = data
             img = img.to(device)
@@ -122,22 +124,33 @@ def main():
 
             curr_loss += loss.item()
 
-            if j % 2000 == 1999:
-                print('epoch ' + str(i) + ' img ' + str(j) + ' training loss:' + str(curr_loss/2000.0))
+            if (j * batch_size) % 960 == 0 and j != 0:
+                print('epoch ' + str(i+1) + ', img ' + str( j * batch_size + 1) + ', training loss: ' + str(curr_loss/j))
+                print('-' * 10)
         
         val_loss = 0
-        with torch.set_grad_enabled(False):
+        correct_num = 0.0
+        total = 0
+
+        with torch.no_grad():
             for data_v in test_loader:
                 img_v, cl_v = data_v
 
                 img_v = img_v.to(device)
                 cl_v = cl_v.to(device)
 
-                pred_v = model(img)
+                pred_v = model(img_v)
 
-                val_loss += criterion(pred_v, cl_v)
+                val_loss += criterion(pred_v, cl_v).item()
+
+                total += cl_v.size(0)
+
+                _, pred_cl_v = torch.max(pred_v.data, 1)
+                correct_num += (pred_cl_v == cl_v).sum().item()
+
+
         
-        print('epoch ' + str(i) + ' test loss: ' + str(val_loss/len(test_data)))
+        print('epoch ' + str(i + 1) + ', test loss: ' + str(val_loss/len(test_data)) + ', Accuracy: ' + str(correct_num/total))
 
 
         
