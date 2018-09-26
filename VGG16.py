@@ -98,6 +98,7 @@ def main():
 
     model = VGG16(10)
     epochs = 20
+    min_loss = float('inf')
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model.to(device)
@@ -123,7 +124,7 @@ def main():
             curr_loss += loss.item()
 
             if j % 2000 == 1999:
-                print('epoch ' + str(i) + ' img ' + str(j) + ' training loss:' + str(curr_loss/2000.0))
+                print('epoch [%d/%d], img [%d,%d], training loss: %f' % format(i, epochs, j, len(train_data), curr_loss/2000.0))
         
         val_loss = 0
         with torch.set_grad_enabled(False):
@@ -137,10 +138,10 @@ def main():
 
                 val_loss += criterion(pred_v, cl_v)
         
-        print('epoch ' + str(i) + ' test loss: ' + str(val_loss/len(test_data)))
-
-
+        if val_loss < min_loss:
+            model.save_state_dict('VGG16.pt')
         
+        print('epoch [%d/%d] test loss: %f' % format(i, len(epochs), val_loss/len(test_data)))
 
 
 if __name__ == '__main__':
