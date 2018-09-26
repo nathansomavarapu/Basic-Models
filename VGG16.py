@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import os
 
 
 class VGG16(nn.Module):
@@ -82,7 +83,7 @@ def main():
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        # transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
     batch_size = 16
     train_data = torchvision.datasets.CIFAR10(
@@ -104,11 +105,13 @@ def main():
 
     model.to(device)
 
+    if os.path.exists('VGG16.pt'):
+        model.load_state_dict(torch.load('VGG16.pt'))
+
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
     for i in range(epochs):
-        
         curr_loss = 0
         total = 0
         for j, data in enumerate(train_loader):
@@ -125,8 +128,9 @@ def main():
 
             curr_loss += loss.item()
 
-            if j % 2000 == 1999:
-                print('epoch [%d/%d], img [%d,%d], training loss: %f' % format(i, epochs, j, len(train_data), curr_loss/2000.0))
+            if j % 200 == 199:
+                print('epoch [%d/%d], img [%d,%d], training loss: %f' % (i, epochs, j, len(train_data), curr_loss/200.0))
+                curr_loss = 0
         
         val_loss = 0
         correct_num = 0.0
@@ -147,13 +151,14 @@ def main():
 
                 _, pred_cl_v = torch.max(pred_v.data, 1)
                 correct_num += (pred_cl_v == cl_v).sum().item()
-
-
         
         if val_loss < min_loss:
-            model.save_state_dict('VGG16.pt')
+            torch.save(model.state_dict(), 'VGG16.pt')
+            min_loss = val_loss
         
-        print('epoch [%d/%d] test loss: %f' % format(i, len(epochs), val_loss/len(test_data)))
+        print(pred_v)
+        
+        print('epoch [%d/%d], test loss: %f, percent correct: %f' % (i, epochs, val_loss/len(test_data), correct_num/len(test_data)))
 
 
 if __name__ == '__main__':

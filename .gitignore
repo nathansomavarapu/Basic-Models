@@ -1,1 +1,2 @@
-data/*
+data/
+VGG16.pt
