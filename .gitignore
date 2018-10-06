@@ -1,2 +1,5 @@
-data/
-VGG16.pt
+VGG16/data/
+GAN/data/
+GAN/gan.pt
+GAN/images/
+VGG16/VGG16.pt
