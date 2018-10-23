@@ -19,3 +19,10 @@ My Pytorch implementation of a Generative Adverserial Network is based on https:
 Below is an example of 25 randonly selected examples from the generator over 15 epochs of training on the MNIST dataset:
 
 ![Alt text](GAN/gan_train.gif?raw=true)
+
+# Autoencoder
+
+Below is an example of 25 randonly selected examples from the generator over 15 epochs of training on the MNIST dataset, also included are the encoding layer which was chosen to be of only size 4:
+
+![Alt text](autoencoder/autoencoder.gif?raw=true)
+![Alt text](autoencoder/encode_layer.gif?raw=true)

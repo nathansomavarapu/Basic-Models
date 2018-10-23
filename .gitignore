@@ -1,5 +1,3 @@
-VGG16/data/
-GAN/data/
-GAN/gan.pt
+data/
 GAN/images/
-VGG16/VGG16.pt
+autoencoder/images/

@@ -75,7 +75,7 @@ class Discriminator(nn.Module):
 
 def main():
 
-    dataset = datasets.MNIST('data/', train=True, download=True, transform=transforms.Compose(
+    dataset = datasets.MNIST('../data/', train=True, download=True, transform=transforms.Compose(
         [transforms.ToTensor(), transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])]))
     trainloader = DataLoader(dataset, shuffle=True, batch_size=64)
 
