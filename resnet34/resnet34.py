@@ -35,6 +35,8 @@ class resnet34(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+        self.l2_to_3 = nn.Conv2d(64, 128, 1, stride=2)
+
         self.l3_1 = nn.Sequential(
             nn.Conv2d(64, 128, 3, padding=1, stride=2),
             nn.ReLU(inplace=True),
@@ -62,6 +64,8 @@ class resnet34(nn.Module):
             nn.Conv2d(128, 128, 3, padding=1),
             nn.ReLU(inplace=True)
         )
+
+        self.l3_to_4 = nn.Conv2d(128, 256, 1, stride=2)
 
         self.l4_1 = nn.Sequential(
             nn.Conv2d(128, 256, 3, padding=1, stride=2),
@@ -106,6 +110,8 @@ class resnet34(nn.Module):
             nn.ReLU(inplace=True)
         )
 
+        self.l4_to_5 = nn.Conv2d(256, 512, 1, stride=2)
+
         self.l5_1 = nn.Sequential(
             nn.Conv2d(256, 512, 3, padding=1, stride=2),
             nn.ReLU(inplace=True),
@@ -137,19 +143,19 @@ class resnet34(nn.Module):
         x = self.l2_2(x) + x
         x = self.l2_3(x) + x
 
-        x = self.l3_1(x)
+        x = self.l3_1(x) + self.l2_to_3(x)
         x = self.l3_2(x) + x
         x = self.l3_3(x) + x
         x = self.l3_4(x) + x
 
-        x = self.l4_1(x)
+        x = self.l4_1(x) + self.l3_to_4(x)
         x = self.l4_2(x) + x
         x = self.l4_3(x) + x
         x = self.l4_4(x) + x
         x = self.l4_5(x) + x
         x = self.l4_6(x) + x
 
-        x = self.l5_1(x) 
+        x = self.l5_1(x) + self.l4_to_5(x)
         x = self.l5_2(x) + x
         x = self.l5_3(x) + x
 
