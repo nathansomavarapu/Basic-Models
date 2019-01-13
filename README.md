@@ -26,3 +26,19 @@ Below is an example of 25 randonly selected examples from the generator over 15 
 
 ![Alt text](autoencoder/autoencoder.gif?raw=true)
 ![Alt text](autoencoder/encode_layer.gif?raw=true)
+
+
+# Logistic Regression
+
+Here is an example of the weights from the logistic and softmax regressions on MNIST, SGD was used to fit them and there were 10000 samples chosen.
+
+Logistic Regression (0/1):
+
+![Alt text](logistic_regression/lr_theta_img.png?raw=true)
+
+Softmax Regression:
+
+| | | | | |
+|:-------------------------:|:-------------------------:|:-------------------------:| :-------------------------:|:-------------------------:|
+| ![Alt text](logistic_regression/theta_softmax_img_0.png?raw=true)  0 |  ![Alt text](logistic_regression/theta_softmax_img_1.png?raw=true)  1| ![Alt text](logistic_regression/theta_softmax_img_2.png?raw=true)  2| ![Alt text](logistic_regression/theta_softmax_img_3.png?raw=true)  3  |  ![Alt text](logistic_regression/theta_softmax_img_4.png?raw=true)  4 |
+| ![Alt text](logistic_regression/theta_softmax_img_5.png?raw=true)  5 |![Alt text](logistic_regression/theta_softmax_img_6.png?raw=true)  6  | ![Alt text](logistic_regression/theta_softmax_img_7.png?raw=true)  7| ![Alt text](logistic_regression/theta_softmax_img_8.png?raw=true)  8| ![Alt text](logistic_regression/theta_softmax_img_9.png?raw=true)  9|
