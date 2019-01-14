@@ -1,7 +1,7 @@
 # VGG16
 My Pytorch Implementation of VGG16 based off of https://arxiv.org/pdf/1409.1556.pdf
 
-Here is a sample of the classification on CIFAR-10 after just a few epochs of training:
+Here is a sample of the classification on CIFAR-10 after about 20 epochs of training:
 
 ![Alt text](VGG16/sample.png?raw=true)
 
@@ -11,6 +11,21 @@ Horse, Dog, Ship, Plane
 Ship, Deer, Horse, Plane
 Cat, Horse, Cat, Ship
 Dog, Dog, Car, Horse
+
+
+# Resnet34
+My Pytorch Implementation of Resnet34 from https://arxiv.org/pdf/1512.03385.pdf. This model performs slightly better than VGG16, but with less training time and takes about half as much to classify a new example.
+
+Here is a sample of the classification on CIFAR-10 after about 7 epochs of training:
+
+![Alt text](resnet34/resnet34_test.png?raw=true)
+
+Classifications:
+
+Dog, Car, Ship, Plane,
+Frog, Frog, Car, Frog,
+Cat, Car, Plane, Truck,
+Dog, Horse, Truck, Ship
 
 # GAN
 

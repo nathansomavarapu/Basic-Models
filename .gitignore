@@ -1,4 +1,5 @@
 data/
 GAN/images/
 autoencoder/images/
+*/*.pt
 .DS_Store
