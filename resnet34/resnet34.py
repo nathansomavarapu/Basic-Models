@@ -210,25 +210,6 @@ def main():
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
     for i in range(epochs):
-        # curr_loss = 0
-        # total = 0
-        # for j, data in enumerate(train_loader):
-        #     img, cl = data
-        #     img = img.to(device)
-        #     cl = cl.to(device)
-
-        #     optimizer.zero_grad()
-
-        #     pred = model(img)
-        #     loss = criterion(pred, cl)
-        #     loss.backward()
-        #     optimizer.step()
-
-        #     curr_loss += loss.item()
-
-        #     if j % 100 == 99:
-        #         print('epoch [%d/%d], img [%d,%d], training loss: %f' % (i, epochs, j, len(train_data), curr_loss/200.0))
-        #         curr_loss = 0
         
         val_loss = 0
         correct_num = 0.0
