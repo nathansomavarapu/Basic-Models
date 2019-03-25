@@ -6,7 +6,7 @@ import torchvision
 from torchvision.datasets import CIFAR10
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
-def train_model(model, epochs, trainloader, crit, opt, device, testloader=None, verbose=False):
+def train_model(model, epochs, trainloader, crit, opt, device, testloader=None, verbose=False, sched=None):
     """Generic model training interface.
     
     Arguments:
@@ -30,27 +30,30 @@ def train_model(model, epochs, trainloader, crit, opt, device, testloader=None, 
             print('----------------------------------')
 
         model.train()
-        run_inference(model, trainloader, crit, opt, device, verbose=verbose)
+        run_inference(model, trainloader, crit, opt, device, verbose=verbose, sched=sched)
 
         if testloader is not None:
-            if verbose:
+            if verbose: 
                 print('\n')
                 print('Testing')
             
             model.eval()
             with torch.no_grad():
-                test_loss, top1 = run_inference(model, testloader, crit, opt, device, verbose=verbose)
+                test_loss, top1 = run_inference(model, testloader, crit, opt, device, verbose=verbose, train=False)
                 
                 min_test_loss = min(min_test_loss, test_loss)
                 max_top1 = max(max_top1, top1)
+
+                if max_top1 == top1:
+                    torch.save(model.state_dict, 'model.pt')
             
             if verbose:
-                print('Test Loss: %f, Test Top1 %f' % (test_loss.item(), top1.item()))
+                print('Test Loss: %f, Test Top1 %f' % (test_loss, top1))
         
-    print('Min Test Loss: %f, Max Test Top1 %f' % (min_test_loss.item(), max_top1))
+    print('Min Test Loss: %f, Max Test Top1 %f' % (min_test_loss, max_top1))
 
 
-def run_inference(model, loader, crit, opt, device, verbose=False):
+def run_inference(model, loader, crit, opt, device, verbose=False, train=True, sched=None):
 
     total_loss = 0.0
     preds = []
@@ -67,9 +70,13 @@ def run_inference(model, loader, crit, opt, device, verbose=False):
         preds.append(torch.max(out, dim=1)[1])
         targets.append(labels)
 
-        opt.zero_grad()
-        loss.backward()
-        opt.step()
+        if train:
+            if sched is not None:
+                sched.step()
+
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
 
         total_loss += loss.item()
 
@@ -79,13 +86,14 @@ def run_inference(model, loader, crit, opt, device, verbose=False):
     preds = torch.cat(preds)
     targets = torch.cat(targets)
 
-    n = preds.size()
+    n = preds.size()[0]
 
-    top1 = torch.sum((preds == targets))/n
+    total_loss = total_loss / float(n)
+    top1 = torch.sum((preds == targets)).item()/ float(n)
         
     return total_loss, top1
 
-def train_cifar(model, epochs, opt, verbose=False):
+def train_cifar(model, epochs, opt, verbose=False, sched=None):
 
     transforms = Compose([
         Resize((224, 224)),
@@ -97,10 +105,12 @@ def train_cifar(model, epochs, opt, verbose=False):
     trainloader = DataLoader(trainset, batch_size=32, shuffle=True)
 
     testset = CIFAR10('../data/', train=False, transform=transforms, download=True)
-    testloader = DataLoader(testset, batch_size=32, shuffle=True)
+    testloader = DataLoader(testset, batch_size=1, shuffle=True)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     crit = nn.CrossEntropyLoss()
 
-    train_model(model, epochs, trainloader, crit, opt, device, testloader=testloader, verbose=verbose)
+    model = model.to(device)
+
+    train_model(model, epochs, trainloader, crit, opt, device, testloader=testloader, verbose=verbose, sched=sched)

@@ -3,66 +3,58 @@ import torch.nn as nn
 
 class mobilenetv2(nn.Module):
 
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, init_weights=True):
         super(mobilenetv2, self).__init__()
+
+        spec = [[1, 16, 1, 1],
+                [6, 24, 2, 2],
+                [6, 32, 3, 2],
+                [6, 64, 4, 2],
+                [6, 96, 3, 1],
+                [6, 160, 3, 2],
+                [6, 320, 1, 1]]
 
         self.conv0 = nn.Sequential(
             nn.Conv2d(3, 32, 3, stride=2, padding=1),
+            nn.BatchNorm2d(32),
             nn.ReLU6()
         )
 
-        self.b0 = bottleneck(1, 32, 16, 1, 1)
-
-        self.b0_b1 = nn.Conv2d(32, 6*16, 1, stride=2)
-        self.b1 = bottleneck(6, 16, 24, 2, 2)
-
-        self.b1_b2 = nn.Conv2d(6*16, 6*24, 1, stride=2)
-        self.b2 = bottleneck(6, 24, 32, 3, 2)
-
-        self.b2_b3 = nn.Conv2d(6*24, 6*32, 1, stride=2)
-        self.b3 = bottleneck(6, 32, 64, 4, 2)
-
-        self.b3_b4 = nn.Conv2d(6*32, 6*64, 1)
-        self.b4 = bottleneck(6, 64, 96, 3, 1)
-
-        self.b4_b5 = nn.Conv2d(6*64, 6*96, 1, stride=2)
-        self.b5 = bottleneck(6, 96, 160, 3, 2)
-
-        self.b5_b6 = nn.Conv2d(6*96, 6*160, 1)
-        self.b6 = bottleneck(6, 160, 320, 1, 1)
+        self.blocks = self._build_blocks(spec)
 
         self.conv1 = nn.Sequential(
             nn.Conv2d(320, 1280, 1),
+            nn.BatchNorm2d(1280),
             nn.ReLU6()
         ) 
         self.avg = nn.AvgPool2d(7)
 
         self.linear = nn.Linear(1280, num_classes)
+
+        if init_weights:
+            self._init_weights()
+    
+    def _build_blocks(self, spec, in_channels=32):
+
+        all_blocks = []
+        prev_channels = in_channels
+        for t, c, n, s in spec:
+            
+            for j in range(n):
+                if j == 1:
+                    all_blocks.append(bottleneck(t, prev_channels, c, s))
+                else:
+                    all_blocks.append(bottleneck(t, prev_channels, c, 1))
+                
+                prev_channels = c
+        
+        return nn.Sequential(*all_blocks)
+
     
     def forward(self, x):
+        out = self.conv0(x)
 
-        x = self.conv0(x)
-        
-        out, x = self.b0(x)
-
-        x = self.b0_b1(x)
-        out, x = self.b1(out, input_residual=x)
-
-        x = self.b1_b2(x)
-        out, x = self.b2(out, input_residual=x)
-
-        x = self.b2_b3(x)
-        out, x = self.b3(out, input_residual=x)
-
-        x = self.b3_b4(x)
-        out, x = self.b4(out, input_residual=x)
-
-        x = self.b4_b5(x)
-        out, x = self.b5(out, input_residual=x)
-
-        x = self.b5_b6(x)
-        out, x = self.b6(out, input_residual=x)
-
+        out = self.blocks(out)
         out = self.conv1(out)
         out = self.avg(out)
         out = out.view(-1, 1280)
@@ -70,45 +62,61 @@ class mobilenetv2(nn.Module):
 
         return out
 
+    def _init_weights(self):
+        
+
+        for layer in self.children():
+            if isinstance(layer, nn.Sequential):
+                for sublayer in layer:
+                    if isinstance(sublayer, bottleneck):
+                        sublayer._init_weights()
+                    else:
+                        shared_weight_init(sublayer)
+            else:
+                shared_weight_init(layer)
+
 class bottleneck(nn.Module):
 
-    def __init__(self, t, cin, cout, n, s):
+    def __init__(self, t, cin, cout, s):
 
         super(bottleneck, self).__init__()
 
         expansion = cin * t
-        self.n = n
+        self.stride = s
+        self.cin = cin
+        self.cout = cout
 
-        self.bottleneck_block_s = nn.Sequential(
+        self.bottleneck_block = nn.Sequential(
             nn.Conv2d(cin, expansion, 1),
+            nn.BatchNorm2d(expansion),
             nn.ReLU6(),
-            nn.Conv2d(expansion, expansion, 3, stride=s, padding=1),
-            nn.ReLU6()
-        )
-
-        self.depth_expansion = nn.Sequential(
+            nn.Conv2d(expansion, expansion, 3, stride=s, groups=expansion, padding=1),
+            nn.BatchNorm2d(expansion),
+            nn.ReLU6(),
             nn.Conv2d(expansion, cout, 1)
         )
 
-        self.bottleneck_block = nn.Sequential(
-            nn.Conv2d(cout, expansion, 1),
-            nn.ReLU6(),
-            nn.Conv2d(expansion, expansion, 3, 1, padding=1),
-            nn.ReLU6()
-        )
+        self.skip = nn.Conv2d(cin, cout, 1)
     
-    def forward(self, x, input_residual=None):
+    def forward(self, x):
 
-
-        if input_residual is None:
-            x = self.bottleneck_block_s(x)
-            out = self.depth_expansion(x)
+        if self.stride == 1:
+            if self.cin != self.cout:
+                x_n = self.skip(x)
+            else:
+                x_n = x
+            return self.bottleneck_block(x) + x_n
         else:
-            x = self.bottleneck_block_s(x) + input_residual
-            out = self.depth_expansion(x)
+            return self.bottleneck_block(x)
 
-        for _ in range(self.n-1):
-            x = self.bottleneck_block(out) + x
-            out = self.depth_expansion(x)
+    def _init_weights(self):
+        for layer in self.children():
+            shared_weight_init(layer)
 
-        return out, x
+def shared_weight_init(layer):
+    if isinstance(layer, nn.Conv2d):
+        nn.init.normal_(layer.weight)
+    if isinstance(layer, nn.Linear):
+        nn.init.constant_(layer.weight, 1)
+        nn.init.constant_(layer.bias, 0)
+            
