@@ -2,4 +2,5 @@ data/
 GAN/images/
 autoencoder/images/
 */*.pt
+*/*.vscode
 .DS_Store
