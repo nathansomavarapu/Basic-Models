@@ -96,7 +96,10 @@ class bottleneck(nn.Module):
             nn.Conv2d(expansion, cout, 1)
         )
 
-        self.skip = nn.Conv2d(cin, cout, 1)
+        self.skip = nn.Sequential(
+            nn.Conv2d(cin, cout, 1),
+            nn.BatchNorm2d(cout)
+        )
     
     def forward(self, x):
 
@@ -116,7 +119,13 @@ class bottleneck(nn.Module):
 def shared_weight_init(layer):
     if isinstance(layer, nn.Conv2d):
         nn.init.normal_(layer.weight)
-    if isinstance(layer, nn.Linear):
+        if layer.bias is not None:
+            nn.init.constant_(layer.bias, 0)
+    if isinstance(layer, nn.BatchNorm2d):
         nn.init.constant_(layer.weight, 1)
         nn.init.constant_(layer.bias, 0)
+    if isinstance(layer, nn.Linear):
+        nn.init.normal_(layer.weight, std=1e-3)
+        if layer.bias is not None:
+            nn.init.constant_(layer.bias, 0)
             

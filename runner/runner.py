@@ -4,7 +4,7 @@ import torch.nn as nn
 
 import torchvision
 from torchvision.datasets import CIFAR10
-from torchvision.transforms import Compose, Resize, ToTensor, Normalize
+from torchvision.transforms import Compose, Resize, RandomCrop, RandomHorizontalFlip, RandomVerticalFlip, ToTensor, Normalize
 
 def train_model(model, epochs, trainloader, crit, opt, device, testloader=None, verbose=False, sched=None):
     """Generic model training interface.
@@ -71,8 +71,6 @@ def run_inference(model, loader, crit, opt, device, verbose=False, train=True, s
         targets.append(labels)
 
         if train:
-            if sched is not None:
-                sched.step()
 
             opt.zero_grad()
             loss.backward()
@@ -82,6 +80,9 @@ def run_inference(model, loader, crit, opt, device, verbose=False, train=True, s
 
         if verbose:
             print('Iteration [%d/%d], Loss: %f' % (i, len(loader), loss.item()))
+    
+    if train and sched is not None:
+        sched.step()
     
     preds = torch.cat(preds)
     targets = torch.cat(targets)
@@ -95,19 +96,29 @@ def run_inference(model, loader, crit, opt, device, verbose=False, train=True, s
 
 def train_cifar(model, epochs, opt, verbose=False, sched=None):
 
-    transforms = Compose([
-        Resize((224, 224)),
+    transforms_train = Compose([
+        Resize(224),
+        RandomCrop(224),
+        RandomHorizontalFlip(),
+        RandomVerticalFlip(),
         ToTensor(),
-        Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
     ])
 
-    trainset = CIFAR10('../data/', train=True, transform=transforms, download=True)
-    trainloader = DataLoader(trainset, batch_size=32, shuffle=True)
+    transforms_test = Compose([
+        Resize(224),
+        ToTensor(),
+        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
 
-    testset = CIFAR10('../data/', train=False, transform=transforms, download=True)
-    testloader = DataLoader(testset, batch_size=1, shuffle=True)
+    trainset = CIFAR10('../data/', train=True, transform=transforms_train, download=True)
+    trainloader = DataLoader(trainset, batch_size=96, shuffle=True)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    testset = CIFAR10('../data/', train=False, transform=transforms_test, download=True)
+    testloader = DataLoader(testset, batch_size=100, shuffle=True)
+
+    device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
     crit = nn.CrossEntropyLoss()
 

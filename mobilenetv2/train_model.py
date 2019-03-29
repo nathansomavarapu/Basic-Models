@@ -10,10 +10,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-model = mobilenetv2(10, init_weights=False)
+model = mobilenetv2(10, init_weights=True)
 
 epochs = 350
-opt = optim.SGD(model.parameters(), lr=0.1)
+opt = optim.SGD(model.parameters(), lr=0.15)
 sched = optim.lr_scheduler.StepLR(opt, step_size=150, gamma=0.1)
 # opt = optim.RMSprop(model.parameters(), lr=0.045)
 # opt = optim.Adam(model.parameters())
